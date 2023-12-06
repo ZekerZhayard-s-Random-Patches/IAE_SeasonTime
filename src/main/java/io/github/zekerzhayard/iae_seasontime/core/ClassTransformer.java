@@ -6,11 +6,9 @@ import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.ClassNode;
-import org.objectweb.asm.tree.InsnList;
 import org.objectweb.asm.tree.InsnNode;
-import org.objectweb.asm.tree.LdcInsnNode;
+import org.objectweb.asm.tree.MethodInsnNode;
 import org.objectweb.asm.tree.MethodNode;
-import org.objectweb.asm.tree.VarInsnNode;
 
 public class ClassTransformer implements IClassTransformer {
     @Override
@@ -21,15 +19,10 @@ public class ClassTransformer implements IClassTransformer {
             for (MethodNode mn : cn.methods) {
                 if (RemapUtils.checkMethodName(cn.name, mn.name, mn.desc, "<init>") && RemapUtils.checkMethodDesc(mn.desc, "(I)V")) {
                     for (AbstractInsnNode ain : mn.instructions.toArray()) {
-                        if (ain.getOpcode() == Opcodes.ILOAD) {
-                            VarInsnNode vin = (VarInsnNode) ain;
-                            if (vin.var == 1) {
-                                InsnList il = new InsnList();
-                                il.add(new InsnNode(Opcodes.ICONST_1));
-                                il.add(new InsnNode(Opcodes.ISHL));
-                                il.add(new InsnNode(Opcodes.ICONST_1));
-                                il.add(new InsnNode(Opcodes.IUSHR));
-                                mn.instructions.insert(vin, il);
+                        if (ain.getOpcode() == Opcodes.INVOKESTATIC) {
+                            MethodInsnNode min = (MethodInsnNode) ain;
+                            if (RemapUtils.checkClassName(min.owner, "com/google/common/base/Preconditions") && RemapUtils.checkMethodName(min.owner, min.name, min.desc, "checkArgument") && RemapUtils.checkMethodDesc(min.desc, "(ZLjava/lang/Object;)V")) {
+                                mn.instructions.set(ain, new InsnNode(Opcodes.POP2));
                             }
                         }
                     }
